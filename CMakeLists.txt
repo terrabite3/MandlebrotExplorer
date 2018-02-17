@@ -50,13 +50,25 @@ add_definitions(
 	-D_CRT_SECURE_NO_WARNINGS
 )
 
+SET(HEADER
+	common/shader.hpp
+	common/texture.hpp
+
+	src/Screen.h
+)
+
+set(SOURCE
+	common/shader.cpp
+	common/texture.cpp
+
+	src/tutorial05.cpp
+	src/Screen.cpp
+)
+
 # Tutorial 5
 add_executable(${PROJECT_NAME}
-	src/tutorial05.cpp
-	common/shader.cpp
-	common/shader.hpp
-	common/texture.cpp
-	common/texture.hpp
+	${HEADER}
+	${SOURCE}
 )
 target_link_libraries(${PROJECT_NAME}
 	${ALL_LIBS}
