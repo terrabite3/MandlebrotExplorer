@@ -16,6 +16,8 @@ using namespace glm;
 #include <common/shader.hpp>
 #include <common/texture.hpp>
 
+#include "Camera.h"
+
 const std::string TRANSFORM_VERTEX_SHADER = R"(
 #version 330 core
 
@@ -77,7 +79,8 @@ void main(){
 
 
 
-Screen::Screen(unsigned width, unsigned height)
+Screen::Screen(const Camera& camera) :
+    m_camera(camera)
 {
 
 
@@ -119,21 +122,6 @@ Screen::Screen(unsigned width, unsigned height)
 
 
 
-
-    // By using an identity projection matrix, we use -1,1 coords
-    m_projection = glm::mat4(1.f);
-
-
-
-    // Camera matrix
-    // Scale by 0.9 so we can see the edge of the texture
-    //glm::mat4 View = glm::scale(glm::mat4(1.f), glm::vec3(0.9f, 0.9f, 1.f));
-    m_view = glm::mat4(1.f);
-
-    // Model matrix : an identity matrix (model will be at the origin)
-    m_model = glm::mat4(1.0f);
-    // Our ModelViewProjection : multiplication of our 3 matrices
-    m_mvp = m_projection * m_view * m_model; // Remember, matrix multiplication is the other way around
 
                                                // Load the texture using any two methods
     int texSize = 2048;
@@ -212,7 +200,8 @@ void Screen::draw() const
 
     // Send our transformation to the currently bound shader, 
     // in the "MVP" uniform
-    glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, &m_mvp[0][0]);
+    auto mvp = m_camera.getMvp();
+    glUniformMatrix4fv(m_matrixId, 1, GL_FALSE, &mvp[0][0]);
 
     // Background black
     glUniform3f(m_backgroundId, 0.f, 0.f, 0.f);

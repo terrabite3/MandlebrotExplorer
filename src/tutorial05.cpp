@@ -3,13 +3,14 @@
 #include <stdlib.h>
 #include <string>
 
-#include "Screen.h"
 
 
 // Include GLFW
 #include <glfw3.h>
 
 
+#include "Screen.h"
+#include "Camera.h"
 
 int main( void )
 {
@@ -40,7 +41,10 @@ int main( void )
     }
     glfwMakeContextCurrent(window);
 
-    Screen screen(width, height);
+
+
+    Camera camera;
+    Screen screen(camera);
 
 
 

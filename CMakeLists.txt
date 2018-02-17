@@ -54,6 +54,7 @@ SET(HEADER
 	common/shader.hpp
 	common/texture.hpp
 
+	src/Camera.h
 	src/Screen.h
 )
 
@@ -61,6 +62,7 @@ set(SOURCE
 	common/shader.cpp
 	common/texture.cpp
 
+	src/Camera.cpp
 	src/tutorial05.cpp
 	src/Screen.cpp
 )

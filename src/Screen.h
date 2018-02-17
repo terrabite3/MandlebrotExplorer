@@ -6,15 +6,18 @@ typedef unsigned int GLuint;
 // Include GLM
 #include <glm/glm.hpp>
 
+class Camera;
+
 class Screen 
 {
 public:
-    Screen(unsigned width, unsigned height);
+    Screen(const Camera& camera);
     virtual ~Screen();
     
     void draw() const;
 
 private:
+    const Camera& m_camera;
 
     GLuint m_vertexArrayId;
     GLuint m_programId;
@@ -25,10 +28,6 @@ private:
     GLuint m_textureId;
     GLuint m_colorTextureId;
 
-    glm::mat4 m_projection;
-    glm::mat4 m_view;
-    glm::mat4 m_model;
-    glm::mat4 m_mvp;
 
     GLuint m_vertexBuffer;
     GLuint m_uvBuffer;
