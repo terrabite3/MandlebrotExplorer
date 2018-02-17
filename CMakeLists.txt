@@ -56,6 +56,7 @@ SET(HEADER
 
 	src/Camera.h
 	src/Screen.h
+	src/Tile.h
 )
 
 set(SOURCE
@@ -65,6 +66,7 @@ set(SOURCE
 	src/Camera.cpp
 	src/tutorial05.cpp
 	src/Screen.cpp
+	src/Tile.cpp
 )
 
 # Tutorial 5

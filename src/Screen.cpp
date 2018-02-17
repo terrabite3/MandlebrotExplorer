@@ -17,6 +17,7 @@ using namespace glm;
 #include <common/texture.hpp>
 
 #include "Camera.h"
+#include "Tile.h"
 
 const std::string TRANSFORM_VERTEX_SHADER = R"(
 #version 330 core
@@ -79,8 +80,9 @@ void main(){
 
 
 
-Screen::Screen(const Camera& camera) :
-    m_camera(camera)
+Screen::Screen(const Camera& camera, const Tile& tile) :
+    m_camera(camera),
+    m_tile(tile)
 {
 
 
@@ -123,9 +125,6 @@ Screen::Screen(const Camera& camera) :
 
 
 
-                                               // Load the texture using any two methods
-    int texSize = 2048;
-    m_texture = renderMandelbrot(-2.5, 1.5, -2, 2, 1000, texSize, texSize);
 
     m_colorTexture = createGradientTexture();
 
@@ -134,34 +133,13 @@ Screen::Screen(const Camera& camera) :
 
     m_colorTextureId = glGetUniformLocation(m_programId, "colorSampler");
 
+    // Create the buffers here
+    GLfloat g_vertex_buffer_data[18];
+    GLfloat g_uv_buffer_data[12];
 
-    static const GLfloat g_vertex_buffer_data[] = {
-        1.0f,  1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-
-        1.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-
-    };
-
-    static const GLfloat g_uv_buffer_data[] = {
-
-        // Top left
-        0.f, 1.f,
-        // Bottom left
-        0.f, 0.f,
-        // Bottom right
-        1.f, 0.f,
-
-        // Top left
-        0.f, 1.f,
-        // Bottom right
-        1.f, 0.f,
-        // Top right
-        1.f, 1.f,
-    };
+    // Fill the buffers here
+    m_tile.getVertexData(g_vertex_buffer_data);
+    m_tile.getUvData(g_uv_buffer_data);
 
     glGenBuffers(1, &m_vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
@@ -181,7 +159,6 @@ Screen::~Screen()
     glDeleteBuffers(1, &m_vertexBuffer);
     glDeleteBuffers(1, &m_uvBuffer);
     glDeleteProgram(m_programId);
-    glDeleteTextures(1, &m_texture);
     glDeleteTextures(1, &m_colorTexture);
     glDeleteVertexArrays(1, &m_vertexArrayId);
 
@@ -210,7 +187,7 @@ void Screen::draw() const
 
     // Bind our texture in Texture Unit 0
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_texture);
+    glBindTexture(GL_TEXTURE_2D, m_tile.getTexture());
     // Set our "myTextureSampler" sampler to use Texture Unit 0
     glUniform1i(m_textureId, 0);
 
@@ -257,120 +234,6 @@ void Screen::draw() const
 
 
 
-#define SMOOTH
-
-GLuint Screen::renderMandelbrot(double left, double right, double top, double bottom, int maxIt, unsigned int width, unsigned int height) {
-
-
-
-    unsigned int bufsize = width * height;
-    auto buffer = new float[bufsize];
-
-#ifndef SMOOTH
-    // Render the fractal
-    for (unsigned py = 0; py < height; ++py) {
-        for (unsigned px = 0; px < width; ++px) {
-
-            double x0 = left + (px * (right - left)) / width;
-            double y0 = top + (py * (bottom - top)) / height;
-
-            double x = 0;
-            double y = 0;
-
-            unsigned i;
-            for (i = 0; i < maxIt; ++i) {
-
-                double xtemp = x*x - y*y + x0;
-                y = 2 * x * y + y0;
-                x = xtemp;
-
-                double magnitudeSqr = x * x + y * y;
-
-                if (magnitudeSqr > 2 * 2) break;
-            }
-
-            //buffer[py * width + px] = (i == maxIt) ? (FLT_MAX) : i / 1.f;
-            buffer[py * width + px] = i;
-
-        }
-    }
-#else
-
-    // Render the fractal
-    for (unsigned py = 0; py < height; ++py) {
-        for (unsigned px = 0; px < width; ++px) {
-
-            double x0 = left + (px * (right - left)) / width;
-            double y0 = top + (py * (bottom - top)) / height;
-
-            double x = 0;
-            double y = 0;
-
-            // Source: https://en.wikipedia.org/wiki/Mandelbrot_set#Continuous_(smooth)_coloring
-            // Here N=2^8 is chosen as a reasonable bailout radius
-            int i = 0;
-            while (x*x + x*y < (1 << 16) && i < maxIt) {
-                double xtemp = x*x - y*y + x0;
-                y = 2 * x*y + y0;
-                x = xtemp;
-
-                ++i;
-            }
-
-            double iteration = i;
-
-            // Used to vaoid floating point issues with points inside the set.
-            if (iteration < maxIt) {
-                // sqrt of inner term remove using log simplification rules.
-                double log_zn = log(x*x + y*y) / 2;
-                double nu = log(log_zn / log(2)) / log(2);
-                // Rearranging the potential function.
-                // Dividing log_zn by log(2) instead of log(N = 1<<8)
-                // because we want the entire palette to range from the 
-                // center to radius 2, NOT our bailout radius.
-                iteration = iteration + 1 - nu;
-            }
-            else {
-                // No need to change iteration -> shader will do the actual gating
-                // Plus, anisotropic filtering will work better if it isn't an extreme value
-            }
-
-            //buffer[py * width + px] = (i == maxIt) ? (FLT_MAX) : i / 1.f;
-            buffer[py * width + px] = (float)iteration;
-
-        }
-    }
-#endif
-
-    // Create one OpenGL texture
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-
-    // "Bind" the newly created texture : all future texture functions will modify this texture
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-
-    // Give the image to OpenGL
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, buffer);
-
-    // OpenGL has now copied the data. Free our own version
-    delete[] buffer;
-
-
-    // ... nice trilinear filtering ...
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    // ... which requires mipmaps. Generate them automatically.
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // Return the ID of the texture we just created
-    return textureID;
-
-
-}
 
 
 GLuint Screen::createGradientTexture()

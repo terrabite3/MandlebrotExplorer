@@ -7,17 +7,19 @@ typedef unsigned int GLuint;
 #include <glm/glm.hpp>
 
 class Camera;
+class Tile;
 
 class Screen 
 {
 public:
-    Screen(const Camera& camera);
+    Screen(const Camera& camera, const Tile& tile);
     virtual ~Screen();
     
     void draw() const;
 
 private:
     const Camera& m_camera;
+    const Tile& m_tile;
 
     GLuint m_vertexArrayId;
     GLuint m_programId;
@@ -34,7 +36,6 @@ private:
 
     mutable uint64_t m_frameNum = 0;
 
-    GLuint m_texture;
     GLuint m_colorTexture;
 
     GLuint renderMandelbrot(double left, double right, double top, double bottom, int maxIt, unsigned int width, unsigned int height);

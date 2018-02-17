@@ -11,6 +11,7 @@
 
 #include "Screen.h"
 #include "Camera.h"
+#include "Tile.h"
 
 int main( void )
 {
@@ -44,7 +45,8 @@ int main( void )
 
 
     Camera camera;
-    Screen screen(camera);
+    Tile tile(-2.5, 1.5, -2, 2, 1000);
+    Screen screen(camera, tile);
 
 
 
