@@ -32,18 +32,31 @@ GLuint Tile::getTexture() const
 
 void Tile::getVertexData(GLfloat * buffer) const
 {
-    static const GLfloat g_vertex_buffer_data[] = {
-        1.0f,  1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
+    // Bottom left
+    buffer[0] = (float)m_left;
+    buffer[1] = (float)m_bottom;
+    buffer[2] = 0.0f;
+    // Top left
+    buffer[3] = (float)m_left;
+    buffer[4] = (float)m_top;
+    buffer[5] = 0.0f;
+    // Top right
+    buffer[6] = (float)m_right;
+    buffer[7] = (float)m_top;
+    buffer[8] = 0.0f;
 
-        1.0f,  1.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,
-        -1.0f,  1.0f, 0.0f,
-
-    };
-
-    memcpy(buffer, g_vertex_buffer_data, sizeof(GLfloat) * 18);
+    // Bottom left
+    buffer[9] = (float)m_left;
+    buffer[10] = (float)m_bottom;
+    buffer[11] = 0.0f;
+    // Top right
+    buffer[12] = (float)m_right;
+    buffer[13] = (float)m_top;
+    buffer[14] = 0.0f;
+    // Bottom right
+    buffer[15] = (float)m_right;
+    buffer[16] = (float)m_bottom;
+    buffer[17] = 0.0f;
 
 }
 

@@ -80,9 +80,8 @@ void main(){
 
 
 
-Screen::Screen(const Camera& camera, const Tile& tile) :
-    m_camera(camera),
-    m_tile(tile)
+Screen::Screen(const Camera& camera) :
+    m_camera(camera)
 {
 
 
@@ -133,21 +132,10 @@ Screen::Screen(const Camera& camera, const Tile& tile) :
 
     m_colorTextureId = glGetUniformLocation(m_programId, "colorSampler");
 
-    // Create the buffers here
-    GLfloat g_vertex_buffer_data[18];
-    GLfloat g_uv_buffer_data[12];
-
-    // Fill the buffers here
-    m_tile.getVertexData(g_vertex_buffer_data);
-    m_tile.getUvData(g_uv_buffer_data);
-
     glGenBuffers(1, &m_vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
+    // All Tiles will share the same UV coords
     glGenBuffers(1, &m_uvBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, m_uvBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
 
 
 
@@ -162,6 +150,11 @@ Screen::~Screen()
     glDeleteTextures(1, &m_colorTexture);
     glDeleteVertexArrays(1, &m_vertexArrayId);
 
+}
+
+void Screen::addTile(Tile* tile)
+{
+    m_tiles.emplace_back(tile);
 }
 
 void Screen::draw() const
@@ -185,45 +178,66 @@ void Screen::draw() const
     glUniform1f(m_cutoffId, m_frameNum / 100.f);
     glUniform1f(m_colorPeriodId, 32.f);
 
-    // Bind our texture in Texture Unit 0
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_tile.getTexture());
-    // Set our "myTextureSampler" sampler to use Texture Unit 0
-    glUniform1i(m_textureId, 0);
 
-    // Now the color texture
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_1D, m_colorTexture);
-    // Set the colorSampler to use Texture Unit 1
-    glUniform1i(m_colorTextureId, 1);
+    for (auto tile : m_tiles) {
 
 
-    // 1rst attribute buffer : vertices
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
-    glVertexAttribPointer(
-        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        (void*)0            // array buffer offset
-    );
+        // Bind our texture in Texture Unit 0
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, tile->getTexture());
+        // Set our "myTextureSampler" sampler to use Texture Unit 0
+        glUniform1i(m_textureId, 0);
 
-    // 2nd attribute buffer : UVs
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, m_uvBuffer);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        2,                                // size : U+V => 2
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
+        // Now the color texture
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_1D, m_colorTexture);
+        // Set the colorSampler to use Texture Unit 1
+        glUniform1i(m_colorTextureId, 1);
 
-    // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0, 12 * 3); // 12*3 indices starting at 0 -> 12 triangles
+
+
+        // 1rst attribute buffer : vertices
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, m_vertexBuffer);
+
+        // Fill the vertex buffer
+        GLfloat g_vertex_buffer_data[18];
+        tile->getVertexData(g_vertex_buffer_data);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(
+            0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+            3,                  // size
+            GL_FLOAT,           // type
+            GL_FALSE,           // normalized?
+            0,                  // stride
+            (void*)0            // array buffer offset
+        );
+
+
+
+        // 2nd attribute buffer : UVs
+        glEnableVertexAttribArray(1);
+        glBindBuffer(GL_ARRAY_BUFFER, m_uvBuffer);
+
+
+        // Fill the UV buffer
+        GLfloat g_uv_buffer_data[12];
+        tile->getUvData(g_uv_buffer_data);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
+
+        glVertexAttribPointer(
+            1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+            2,                                // size : U+V => 2
+            GL_FLOAT,                         // type
+            GL_FALSE,                         // normalized?
+            0,                                // stride
+            (void*)0                          // array buffer offset
+        );
+
+        // Draw the triangle !
+        glDrawArrays(GL_TRIANGLES, 0, 2 * 3); // 12*3 indices starting at 0 -> 12 triangles
+    }
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);

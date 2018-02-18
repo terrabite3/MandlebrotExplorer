@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 struct GLFWwindow;
 typedef unsigned int GLuint;
 
@@ -12,14 +14,16 @@ class Tile;
 class Screen 
 {
 public:
-    Screen(const Camera& camera, const Tile& tile);
+    Screen(const Camera& camera);
     virtual ~Screen();
     
+    void addTile(Tile* tile);
+
     void draw() const;
 
 private:
     const Camera& m_camera;
-    const Tile& m_tile;
+    std::vector<Tile*> m_tiles;
 
     GLuint m_vertexArrayId;
     GLuint m_programId;
@@ -38,7 +42,6 @@ private:
 
     GLuint m_colorTexture;
 
-    GLuint renderMandelbrot(double left, double right, double top, double bottom, int maxIt, unsigned int width, unsigned int height);
     GLuint createGradientTexture();
     void setClearColor(float red, float green, float blue, float alpha = 0.0f);
 };

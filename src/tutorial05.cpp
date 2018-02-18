@@ -45,8 +45,12 @@ int main( void )
 
 
     Camera camera;
-    Tile tile(-2.5, 1.5, -2, 2, 1000);
-    Screen screen(camera, tile);
+
+    Tile tile1(-2.5, -0.5, -2, 0, 1000);
+    Tile tile2(-0.5, 1.5, 0, 2, 1000);
+    Screen screen(camera);
+    screen.addTile(&tile1);
+    screen.addTile(&tile2);
 
 
 
