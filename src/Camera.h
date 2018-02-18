@@ -9,6 +9,9 @@ public:
     Camera();
     virtual ~Camera();
 
+    void setCenter(double x, double y);
+    void setZoom(double z);
+
     glm::mat4 getMvp() const;
 
 

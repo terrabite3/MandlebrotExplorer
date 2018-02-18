@@ -45,6 +45,8 @@ int main( void )
 
 
     Camera camera;
+    camera.setCenter(-0.5, 0);
+    camera.setZoom(0.7);
 
     Tile tile1(-2.5, -0.5, -2, 0, 1000);
     Tile tile2(-0.5, 1.5, 0, 2, 1000);
