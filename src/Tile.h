@@ -16,7 +16,7 @@ public:
     void getUvData(GLfloat* buffer) const;
 
 private:
-    static const int TEXTURE_SIZE = 1024;
+    static const int TEXTURE_SIZE = 4096;
 
     double m_left, m_right, m_top, m_bottom;
     int m_maxIt;

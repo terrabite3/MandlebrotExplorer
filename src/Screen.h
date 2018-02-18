@@ -17,6 +17,8 @@ public:
     Screen(const Camera& camera);
     virtual ~Screen();
     
+    void setCutoff(double cutoff);
+
     void addTile(Tile* tile);
 
     void draw() const;
@@ -24,6 +26,8 @@ public:
 private:
     const Camera& m_camera;
     std::vector<Tile*> m_tiles;
+
+    double m_cutoff;
 
     GLuint m_vertexArrayId;
     GLuint m_programId;
@@ -38,7 +42,6 @@ private:
     GLuint m_vertexBuffer;
     GLuint m_uvBuffer;
 
-    mutable uint64_t m_frameNum = 0;
 
     GLuint m_colorTexture;
 

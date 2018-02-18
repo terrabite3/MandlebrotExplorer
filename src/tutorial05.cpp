@@ -45,23 +45,37 @@ int main( void )
 
 
     Camera camera;
-    camera.setCenter(-0.5, 0);
+    camera.setCenter(-0.743643887037158704752191506114774, -0.131825904205311970493132056385139);
     camera.setZoom(0.7);
 
     Tile tile1(-2.5, -0.5, -2, 0, 1000);
-    Tile tile2(-0.5, 1.5, 0, 2, 1000);
+    Tile tile2(-2.5, -0.5, 0, 2, 1000);
+    Tile tile3(-0.5, 1.5, -2, 0, 1000);
+    Tile tile4(-0.5, 1.5, 0, 2, 1000);
     Screen screen(camera);
     screen.addTile(&tile1);
     screen.addTile(&tile2);
+    screen.addTile(&tile3);
+    screen.addTile(&tile4);
+
+
+    double zoom = 0.5;
 
 
 
-
-
-
-
+    int frameNum = 0;
 
     do{
+        ++frameNum;
+        
+
+        screen.setCutoff(frameNum / 100.0);
+
+        zoom *= 1.001;
+
+        camera.setZoom(zoom);
+
+
         screen.draw();
 
         // Swap buffers

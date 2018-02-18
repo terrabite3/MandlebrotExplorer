@@ -152,6 +152,11 @@ Screen::~Screen()
 
 }
 
+void Screen::setCutoff(double cutoff)
+{
+    m_cutoff = cutoff;
+}
+
 void Screen::addTile(Tile* tile)
 {
     m_tiles.emplace_back(tile);
@@ -159,8 +164,6 @@ void Screen::addTile(Tile* tile)
 
 void Screen::draw() const
 {
-    ++m_frameNum;
-
 
     // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -175,7 +178,7 @@ void Screen::draw() const
 
     // Background black
     glUniform3f(m_backgroundId, 0.f, 0.f, 0.f);
-    glUniform1f(m_cutoffId, m_frameNum / 100.f);
+    glUniform1f(m_cutoffId, (float)m_cutoff);
     glUniform1f(m_colorPeriodId, 32.f);
 
 
