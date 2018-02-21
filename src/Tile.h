@@ -25,4 +25,5 @@ private:
     mutable GLuint m_texture;
 
     void render() const;
+    void renderCl() const;
 };

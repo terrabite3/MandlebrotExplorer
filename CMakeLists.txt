@@ -4,6 +4,8 @@ project (MandelbrotGame)
 
 find_package(OpenGL REQUIRED)
 
+find_package(OpenCL REQUIRED)
+
 
 if( CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR )
     message( FATAL_ERROR "Please select another Build Directory ! (and give it a clever name, like bin_Visual2012_64bits/)" )
@@ -34,13 +36,9 @@ include_directories(
 	external/glm-0.9.7.1/
 	external/glew-1.13.0/include/
 	.
+	${OpenCL_INCLUDE_DIRS}
 )
 
-set(ALL_LIBS
-	${OPENGL_LIBRARY}
-	glfw
-	GLEW_1130
-)
 
 add_definitions(
 	-DTW_STATIC
@@ -75,7 +73,10 @@ add_executable(${PROJECT_NAME}
 	${SOURCE}
 )
 target_link_libraries(${PROJECT_NAME}
-	${ALL_LIBS}
+	${OPENGL_LIBRARY}
+	${OpenCL_LIBRARIES}
+	glfw
+	GLEW_1130
 )
 
 
