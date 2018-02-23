@@ -6,9 +6,8 @@
 // Include GLM
 #include <glm/glm.hpp>
 
-#include <CL/cl.h>
-#include <CL/cl_gl.h>
-#include <CL/cl_gl_ext.h>
+#define __CL_ENABLE_EXCEPTIONS
+#include <CL/cl.hpp>
 
 #include <iostream>
 #include <string>
@@ -271,6 +270,12 @@ void Tile::render() const
 
 }
 
+void CL_CALLBACK myCallback(const char* errorinfo, const void * private_info_size, size_t cb, void* user_data) {
+    std::string message(errorinfo);
+    std::cout << message;
+}
+
+
 void Tile::renderCl() const
 {
     // Generate the OpenGL texture to be shared with OpenCL
@@ -309,54 +314,23 @@ void Tile::renderCl() const
     //glGenerateMipmap(GL_TEXTURE_2D);
 
 
+    // Unbind the texture? Is this needed?
+    glBindTexture(GL_TEXTURE_2D, 0);
+    // Not sure what this would do here, but it's in the example
+    glFinish();
 
-    // Now for some OpenCL stuff
-    const int MAX_PLATFORMS_ASSUMED = 5;
-    const int MAX_DEVICES_ASSUMED = 5;
 
-    cl_platform_id clPlatformsAvailable[MAX_PLATFORMS_ASSUMED];
-    cl_uint clNumPlatformsActual;
-    cl_platform_id clPlatform;
 
-    cl_device_id clDevicesAvailable[MAX_DEVICES_ASSUMED];
-    cl_uint clNumDevicesActual;
-    cl_device_id clDevice;
+
 
     cl_int result;
-    result = clGetPlatformIDs(MAX_PLATFORMS_ASSUMED, clPlatformsAvailable, &clNumPlatformsActual);
-    myassert(result);
 
-    for (cl_uint i = 0; i < clNumPlatformsActual; ++i) {
-        char vendorStr[128];
-        size_t vendorStrLen;
+    std::vector<cl::Platform> platforms;
+    cl::Platform::get(&platforms);
+    auto platform = platforms[0];
 
-        result = clGetPlatformInfo(clPlatformsAvailable[i], CL_PLATFORM_VENDOR, sizeof(vendorStr), vendorStr, &vendorStrLen);
-        myassert(result);
-
-        std::cout << "Platform " << i << ": " << vendorStr << std::endl;
-    }
-
-    // Just use the first platform
-    //myassert(clNumPlatformsActual >= 1);
-    clPlatform = clPlatformsAvailable[0];
-
-
-    // Enumerate devices
-    result = clGetDeviceIDs(clPlatform, CL_DEVICE_TYPE_GPU, MAX_DEVICES_ASSUMED, clDevicesAvailable, &clNumDevicesActual);
-    myassert(result);
-
-    for (cl_uint i = 0; i < clNumDevicesActual; ++i) {
-        
-        char deviceNameStr[128];
-
-        result = clGetDeviceInfo(clDevicesAvailable[i], CL_DEVICE_NAME, sizeof(deviceNameStr), deviceNameStr, 0);
-        myassert(result);
-
-        // Just use the first device -- I hope it's the best!
-        clDevice = clDevicesAvailable[i];
-        break;
-    }
-
+    std::vector<cl::Device> devices;
+    platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
 
     // Create a context
     // What do if not Windows?
@@ -365,51 +339,25 @@ void Tile::renderCl() const
 
     cl_context_properties properties[] =
     {
-        CL_CONTEXT_PLATFORM, (cl_context_properties)clPlatform,
+        CL_CONTEXT_PLATFORM, (cl_context_properties)platform(),
         CL_GL_CONTEXT_KHR,   (cl_context_properties)hGLRC,
         CL_WGL_HDC_KHR,      (cl_context_properties)hDC,
         0
     };
 
-    cl_context context = clCreateContext(properties, 1, &clDevice, 0, 0, &result);
+    cl::Context context(devices[0], properties, &myCallback);
+
+    cl::CommandQueue commandQueue(context, devices[0], 0, &result);
     myassert(result);
 
-    cl_command_queue commandQueue = clCreateCommandQueue(context, clDevice, 0, &result);
+    cl::Program module(context, kernelSourceStr, true, &result);
     myassert(result);
-
-    // The openCL kernel source
-    const char* kernelSrc = kernelSourceStr.c_str();
-    size_t lenKernelSrc = kernelSourceStr.length();
-
-    cl_program module = clCreateProgramWithSource(context, 1, &kernelSrc, &lenKernelSrc, &result);
-    myassert(result);
-
-    // Check for compile errors
-    if (clBuildProgram(module, 1, &clDevice, 0, 0, 0) != CL_SUCCESS) {
-        char buffer[10240];
-        clGetProgramBuildInfo(module, clDevice, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, NULL);
-        std::cerr << buffer << std::endl;
-        myassert(false);
-    }
-
-    result = clUnloadCompiler();
-    myassert(result);
-
 
     // Create the kernel
-    std::string entryPointName("mandelbrotKernel");
-
-    cl_kernel kernel = clCreateKernel(module, entryPointName.c_str(), &result);
+    cl::Kernel mandelbrotKernel(module, "mandelbrotKernel", &result);
     myassert(result);
 
 
-    // Unbind the texture? Is this needed?
-    glBindTexture(GL_TEXTURE_2D, 0);
-    // Not sure what this would do here, but it's in the example
-    glFinish();
-
-
-    //cl_mem leftBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float), )
     float bounds[] = {
         (float)m_left,
         (float)m_right,
@@ -419,48 +367,40 @@ void Tile::renderCl() const
 
     int maxIt = m_maxIt;
 
-
-    cl_mem boundsBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * 4, bounds, &result);
+    cl::Buffer boundsBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(bounds), bounds, &result);
     myassert(result);
-    cl_mem maxItBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int), &maxIt, &result);
-    myassert(result);
-
-
-
-    result = clSetKernelArg(kernel, 0, sizeof(cl_mem), &boundsBuffer);
-    myassert(result);
-    result = clSetKernelArg(kernel, 1, sizeof(cl_mem), &maxItBuffer);
-    myassert(result);
-
-    cl_mem textureAsClMem = clCreateFromGLTexture(context, 
-        CL_MEM_WRITE_ONLY,  // flags
-        GL_TEXTURE_2D,      // texture_target
-        0,                  // miplevel
-        m_texture,          // texture
-        &result);           // errcode_ret
+    cl::Buffer maxItBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(maxIt), &maxIt, &result);
     myassert(result);
 
 
-    result = clEnqueueAcquireGLObjects(commandQueue, 1, &textureAsClMem, 0, 0, NULL);
+    result = mandelbrotKernel.setArg(0, boundsBuffer);
+    myassert(result);
+    
+    result = mandelbrotKernel.setArg(1, maxItBuffer);
     myassert(result);
 
-    result = clSetKernelArg(kernel, 2, sizeof(cl_mem), &textureAsClMem);
+
+    cl::ImageGL textureAsClMem(context, CL_MEM_WRITE_ONLY, GL_TEXTURE_2D, 0, m_texture, &result);
+    myassert(result);
+
+    std::vector<cl::Memory> textureVector{ textureAsClMem };
+    result = commandQueue.enqueueAcquireGLObjects(&textureVector);
+    myassert(result);
+
+    result = mandelbrotKernel.setArg(2, textureAsClMem);
     myassert(result);
 
 
-    size_t globalWorkSize[] = { TEXTURE_SIZE, TEXTURE_SIZE };
-    size_t localWorkSize[] = { 16, 16 };
-
-    result = clEnqueueNDRangeKernel(commandQueue, kernel, 2, NULL, globalWorkSize, localWorkSize, 0, 0, 0);
+    result = commandQueue.enqueueNDRangeKernel(mandelbrotKernel,
+        cl::NullRange,                              // offset
+        cl::NDRange(TEXTURE_SIZE, TEXTURE_SIZE)     // global
+    );  // local left up to the driver
     myassert(result);
 
-    //result = clFinish(commandQueue);
-    //myassert(result);
-
-    result = clEnqueueReleaseGLObjects(commandQueue, 1, &textureAsClMem, 0, 0, NULL);
+    result = commandQueue.enqueueReleaseGLObjects(&textureVector);
     myassert(result);
 
-    result = clFinish(commandQueue);
+    result = commandQueue.finish();
     myassert(result);
 
 }
