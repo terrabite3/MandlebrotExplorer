@@ -14,6 +14,8 @@
 #include "Screen.h"
 #include "Camera.h"
 #include "Tile.h"
+#include "OpenClRenderer.h"
+#include "CpuRenderer.h"
 
 int main( void )
 {
@@ -50,15 +52,23 @@ int main( void )
     camera.setZoom(0.7);
 
     Tile tile1(-2.5, -0.5, -2, 0, 1000);
-    //Tile tile2(-2.5, -0.5, 0, 2, 1000);
-    //Tile tile3(-0.5, 1.5, -2, 0, 1000);
-    //Tile tile4(-0.5, 1.5, 0, 2, 1000);
+    Tile tile2(-2.5, -0.5, 0, 2, 1000);
+    Tile tile3(-0.5, 1.5, -2, 0, 1000);
+    Tile tile4(-0.5, 1.5, 0, 2, 1000);
     Screen screen(camera);
     screen.addTile(&tile1);
-    //screen.addTile(&tile2);
-    //screen.addTile(&tile3);
-    //screen.addTile(&tile4);
 
+    OpenClRenderer renderer;
+    renderer.render(tile1);
+
+    screen.addTile(&tile2);
+    screen.addTile(&tile3);
+    screen.addTile(&tile4);
+
+    CpuRenderer cpu;
+    cpu.render(tile2);
+    renderer.render(tile3);
+    cpu.render(tile4);
 
     double zoom = 0.5;
 

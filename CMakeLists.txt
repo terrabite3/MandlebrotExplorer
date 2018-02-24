@@ -53,6 +53,8 @@ SET(HEADER
 	common/texture.hpp
 
 	src/Camera.h
+	src/OpenClRenderer.h
+	src/CpuRenderer.h
 	src/Screen.h
 	src/Tile.h
 )
@@ -62,6 +64,8 @@ set(SOURCE
 	common/texture.cpp
 
 	src/Camera.cpp
+	src/OpenClRenderer.cpp
+	src/CpuRenderer.cpp
 	src/tutorial05.cpp
 	src/Screen.cpp
 	src/Tile.cpp

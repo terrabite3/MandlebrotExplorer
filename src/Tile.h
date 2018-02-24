@@ -3,12 +3,27 @@
 typedef unsigned int GLuint;
 typedef float GLfloat;
 
+
 class Tile {
 public:
-    Tile(double left, double right, double top, double bottom, int maxIt, bool smooth = true);
+
+    struct Bounds {
+        float left;
+        float right;
+        float top;
+        float bottom;
+        float maxIt;
+    };
+
+
+    Tile(double left, double right, double top, double bottom, int maxIt);
     virtual ~Tile();
 
+    const Bounds* getBounds() const;
+
     GLuint getTexture() const;
+
+    int getTextureSize() const;
 
     // Fill 18 float values, 2 triangles * 3 points * 3 coordinates
     void getVertexData(GLfloat* buffer) const;
@@ -18,12 +33,8 @@ public:
 private:
     static const int TEXTURE_SIZE = 4096;
 
-    double m_left, m_right, m_top, m_bottom;
-    int m_maxIt;
-    bool m_smooth;
+    Bounds m_bounds;
 
     mutable GLuint m_texture;
 
-    void render() const;
-    void renderCl() const;
 };
