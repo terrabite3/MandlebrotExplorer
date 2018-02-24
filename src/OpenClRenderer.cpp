@@ -35,25 +35,38 @@ __kernel void mandelbrotKernel(
 	float xSqr;
 	float ySqr;
 	float xTemp = 0;
-	int it = 0;
 
-	while (true) {
-		xSqr = x * x;
-		ySqr = y * y;
-		if (xSqr + ySqr > 4) break;
-		if (it >= maxIt) break;
+    // Source: https://en.wikipedia.org/wiki/Mandelbrot_set#Continuous_(smooth)_coloring
+    // Here N=2^8 is chosen as a reasonable bailout radius
+	int i = 0;
 
-		xTemp = xSqr - ySqr + x0;
-		y = 2 * x * y + y0;
-		x = xTemp;
+    while (x*x + y*y < (1 << 16) && i < maxIt) {
+        float xtemp = x*x - y*y + x0;
+        y = 2 * x*y + y0;
+        x = xtemp;
 
-		it++;
-	}
+        ++i;
+    }
 
-	if (it == maxIt) 
-        write_imagef(output, coord, it);
-	else 
-        write_imagef(output, coord, it - log2(log2(sqrt(xSqr + ySqr))));
+    float iteration = i;
+
+    // Used to avoid floating point issues with points inside the set.
+    if (iteration < maxIt) {
+        // sqrt of inner term removed using log simplification rules.
+        float log_zn = log(x*x + y*y) / 2.f;
+        float nu = log(log_zn / log(2.f)) / log(2.f);
+        // Rearranging the potential function.
+        // Dividing log_zn by log(2) instead of log(N = 1<<8)
+        // because we want the entire palette to range from the 
+        // center to radius 2, NOT our bailout radius.
+        iteration = iteration + 1 - nu;
+    }
+    else {
+        // No need to change iteration -> shader will do the actual gating
+        // Plus, anisotropic filtering will work better if it isn't an extreme value
+    }
+
+    write_imagef(output, coord, iteration);
 }
 )";
 

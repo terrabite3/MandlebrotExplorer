@@ -27,7 +27,7 @@ void CpuRenderer::render(Tile & tile)
             // Source: https://en.wikipedia.org/wiki/Mandelbrot_set#Continuous_(smooth)_coloring
             // Here N=2^8 is chosen as a reasonable bailout radius
             int i = 0;
-            while (x*x + x*y < (1 << 16) && i < maxIt) {
+            while (x*x + y*y < (1 << 16) && i < maxIt) {
                 double xtemp = x*x - y*y + x0;
                 y = 2 * x*y + y0;
                 x = xtemp;
