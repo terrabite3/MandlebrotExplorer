@@ -57,6 +57,7 @@ SET(HEADER
 	src/CpuRenderer.h
 	src/Screen.h
 	src/Tile.h
+	src/TileSplitter.h
 )
 
 set(SOURCE
@@ -69,6 +70,7 @@ set(SOURCE
 	src/tutorial05.cpp
 	src/Screen.cpp
 	src/Tile.cpp
+	src/TileSplitter.cpp
 )
 
 # Tutorial 5

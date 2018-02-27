@@ -11,7 +11,7 @@ void CpuRenderer::render(Tile & tile)
 
     auto buffer = new float[width * height];
 
-    Tile::Bounds bounds = *tile.getBounds();
+    Tile::Bounds bounds = tile.getBounds();
     int maxIt = bounds.maxIt;
     
     // Render the fractal

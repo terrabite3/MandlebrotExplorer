@@ -133,7 +133,7 @@ void OpenClRenderer::render(const Tile & tile)
     cl::Buffer boundsBuffer(m_context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
         sizeof(Tile::Bounds),
-        (void*)(tile.getBounds()),
+        (void*)(&(tile.getBounds())),
         &result
     );
 
@@ -167,7 +167,7 @@ void OpenClRenderer::render(const Tile & tile)
     result = m_queue.enqueueReleaseGLObjects(&textureVector);
     myassert(result);
 
-    result = m_queue.finish();
+    result = m_queue.flush();
     myassert(result);
 
 }

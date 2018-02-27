@@ -18,6 +18,7 @@ using namespace glm;
 
 #include "Camera.h"
 #include "Tile.h"
+#include "TileSplitter.h"
 
 const std::string TRANSFORM_VERTEX_SHADER = R"(
 #version 330 core
@@ -80,8 +81,9 @@ void main(){
 
 
 
-Screen::Screen(const Camera& camera) :
-    m_camera(camera)
+Screen::Screen(const Camera& camera, const TileSplitter& tiles) :
+    m_camera(camera),
+    m_tiles(tiles)
 {
 
 
@@ -152,16 +154,6 @@ Screen::~Screen()
 
 }
 
-void Screen::setCutoff(double cutoff)
-{
-    m_cutoff = cutoff;
-}
-
-void Screen::addTile(Tile* tile)
-{
-    m_tiles.emplace_back(tile);
-}
-
 void Screen::draw() const
 {
 
@@ -178,11 +170,11 @@ void Screen::draw() const
 
     // Background black
     glUniform3f(m_backgroundId, 0.f, 0.f, 0.f);
-    glUniform1f(m_cutoffId, (float)m_cutoff);
+    glUniform1f(m_cutoffId, (float)m_camera.getCutoff());
     glUniform1f(m_colorPeriodId, 32.f);
 
 
-    for (auto tile : m_tiles) {
+    for (auto tile : m_tiles.getTiles()) {
 
 
         // Bind our texture in Texture Unit 0

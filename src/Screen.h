@@ -10,24 +10,19 @@ typedef unsigned int GLuint;
 
 class Camera;
 class Tile;
+class TileSplitter;
 
 class Screen 
 {
 public:
-    Screen(const Camera& camera);
+    Screen(const Camera& camera, const TileSplitter& tiles);
     virtual ~Screen();
-    
-    void setCutoff(double cutoff);
-
-    void addTile(Tile* tile);
 
     void draw() const;
 
 private:
     const Camera& m_camera;
-    std::vector<Tile*> m_tiles;
-
-    double m_cutoff;
+    const TileSplitter& m_tiles;
 
     GLuint m_vertexArrayId;
     GLuint m_programId;

@@ -3,6 +3,7 @@
 typedef unsigned int GLuint;
 typedef float GLfloat;
 
+#include <vector>
 
 class Tile {
 public:
@@ -15,11 +16,14 @@ public:
         float maxIt;
     };
 
-
-    Tile(double left, double right, double top, double bottom, int maxIt);
+    explicit Tile(Bounds bounds, int generation = 0);
+    Tile(double left, double right, double top, double bottom, int maxIt, int generation = 0);
     virtual ~Tile();
 
-    const Bounds* getBounds() const;
+    Bounds getBounds() const;
+
+    std::vector<Tile*> split();
+    bool isSplit() const;
 
     GLuint getTexture() const;
 
@@ -34,7 +38,12 @@ private:
     static const int TEXTURE_SIZE = 4096;
 
     Bounds m_bounds;
-
+    int m_generation;
+    bool m_split;
     mutable GLuint m_texture;
 
+    GLuint createTexture();
+
 };
+
+bool inside(const Tile::Bounds& view, const Tile::Bounds& tile);

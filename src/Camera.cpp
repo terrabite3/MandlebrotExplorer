@@ -27,6 +27,17 @@ void Camera::setZoom(double z)
     m_zoom = z;
 }
 
+void Camera::setCutoff(double cutoff)
+{
+    m_cutoff = cutoff;
+}
+
+void Camera::setDimensionsPx(int width, int height)
+{
+    m_width = width;
+    m_height = height;
+}
+
 mat4 Camera::getMvp() const
 {
     // By using an identity projection matrix, we use -1,1 coords
@@ -48,4 +59,36 @@ mat4 Camera::getMvp() const
     glm::mat4 mvp = projection * view * model; // Remember, matrix multiplication is the other way around
 
     return mvp;
+}
+
+double Camera::getCutoff() const
+{
+    return m_cutoff;
+}
+
+Tile::Bounds Camera::getBounds() const
+{
+    // TODO not sure this is correct
+    double left = m_centerX - 1.0 / m_zoom;
+    double right = m_centerX + 1.0 / m_zoom;
+    double top = m_centerY - 1.0 / m_zoom;
+    double bottom = m_centerY + 1.0 / m_zoom;
+
+    return {
+        (float)left,
+        (float)right,
+        (float)top,
+        (float)bottom,
+        (float)m_cutoff
+    };
+}
+
+int Camera::getWidthPx() const
+{
+    return m_width;
+}
+
+int Camera::getHeightPx() const
+{
+    return m_height;
 }

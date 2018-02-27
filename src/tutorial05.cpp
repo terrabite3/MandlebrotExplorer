@@ -16,6 +16,7 @@
 #include "Tile.h"
 #include "OpenClRenderer.h"
 #include "CpuRenderer.h"
+#include "TileSplitter.h"
 
 int main( void )
 {
@@ -50,42 +51,28 @@ int main( void )
     Camera camera;
     camera.setCenter(-0.743643887037158704752191506114774, -0.131825904205311970493132056385139);
     camera.setZoom(0.7);
+    camera.setDimensionsPx(width, height);
 
-    Tile tile1(-2.5, -0.5, -2, 0, 1000);
-    Tile tile2(-2.5, -0.5, 0, 2, 1000);
-    Tile tile3(-0.5, 1.5, -2, 0, 1000);
-    Tile tile4(-0.5, 1.5, 0, 2, 1000);
-    Screen screen(camera);
-    screen.addTile(&tile1);
+    TileSplitter splitter(camera, Tile::Bounds{ -2.5f, 1.5f, -2.f, 2.f, 1000.f });
 
-    OpenClRenderer renderer;
-    renderer.render(tile1);
 
-    screen.addTile(&tile2);
-    screen.addTile(&tile3);
-    screen.addTile(&tile4);
+    Screen screen(camera, splitter);
 
-    CpuRenderer cpu;
-    cpu.render(tile2);
-    renderer.render(tile3);
-    cpu.render(tile4);
 
     double zoom = 0.5;
-
 
 
     int frameNum = 0;
 
     do{
         ++frameNum;
-        
-
-        screen.setCutoff(frameNum / 100.0);
 
         zoom *= 1.001;
 
         camera.setZoom(zoom);
+        camera.setCutoff(frameNum / 100.0);
 
+        splitter.splitAsNeeded();
 
         screen.draw();
 
