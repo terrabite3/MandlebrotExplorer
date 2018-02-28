@@ -7,19 +7,21 @@
 
 
 Tile::Tile(Bounds bounds, int generation):
+    m_state(State::INIT),
     m_bounds(bounds),
     m_generation(generation),
-    m_split(false),
-    m_texture(createTexture())
+    m_texture(NULL),
+    m_cachedTexture(nullptr)
 {
 
 }
 
 Tile::Tile(double left, double right, double top, double bottom, int maxIt, int generation) :
+    m_state(State::INIT),
     m_bounds{ (float)left, (float)right, (float)top, (float)bottom, (float)maxIt },
     m_generation(generation),
-    m_split(false),
-    m_texture(createTexture())
+    m_texture(NULL),
+    m_cachedTexture(nullptr)
 {
 
 }
@@ -29,6 +31,60 @@ Tile::~Tile()
     glDeleteTextures(1, &m_texture);
 }
 
+Tile::State Tile::getState() const
+{
+    return m_state;
+}
+
+void Tile::createTexture()
+{
+    assert(m_state == State::INIT);
+    assert(m_texture == NULL);
+
+    auto buffer = new float[TEXTURE_SIZE * TEXTURE_SIZE];
+    // IEEE says the pattern for 0.0f is all zeros
+    memset(buffer, 0, TEXTURE_SIZE * TEXTURE_SIZE * sizeof(float));
+
+    createTexture(buffer);
+
+    delete[] buffer;
+    m_state = State::EMPTY;
+}
+
+//void Tile::reloadTexture()
+//{
+//    assert(m_state == State::UNLOADED);
+//    assert(m_texture == NULL);
+//    assert(m_cachedTexture != nullptr);
+//
+//    createTexture(m_cachedTexture);
+//
+//    m_state = State::ACTIVE;
+//}
+
+//void Tile::unloadTexture()
+//{
+//    assert(m_state == State::ACTIVE || m_state == State::SPLIT);
+//
+//    // TODO read back the buffer data
+//    
+//
+//
+//    //m_state = State::UNLOADED;
+//}
+
+void Tile::setRendering()
+{
+    assert(m_state == State::EMPTY);
+    m_state = State::RENDERING;
+}
+
+void Tile::setRendered()
+{
+    assert(m_state == State::RENDERING);
+    m_state = State::ACTIVE;
+}
+
 Tile::Bounds Tile::getBounds() const
 {
     return m_bounds;
@@ -36,29 +92,40 @@ Tile::Bounds Tile::getBounds() const
 
 std::vector<Tile*> Tile::split()
 {
-    assert(!m_split);
-    m_split = true;
+    assert(m_state == State::ACTIVE);
+    assert(m_children.empty());
 
-    std::vector<Tile*> newTiles;
+    //std::vector<Tile*> newTiles;
 
     float centerX = (m_bounds.left + m_bounds.right) / 2;
     float centerY = (m_bounds.top + m_bounds.bottom) / 2;
 
-    newTiles.emplace_back(new Tile(m_bounds.left, centerX, m_bounds.top, centerY, m_bounds.maxIt, m_generation + 1));
-    newTiles.emplace_back(new Tile(centerX, m_bounds.right, m_bounds.top, centerY, m_bounds.maxIt, m_generation + 1));
-    newTiles.emplace_back(new Tile(m_bounds.left, centerX, centerY, m_bounds.bottom, m_bounds.maxIt, m_generation + 1));
-    newTiles.emplace_back(new Tile(centerX, m_bounds.right, centerY, m_bounds.bottom, m_bounds.maxIt, m_generation + 1));
+    m_children.emplace_back(new Tile(m_bounds.left, centerX, m_bounds.top, centerY, m_bounds.maxIt, m_generation + 1));
+    m_children.emplace_back(new Tile(centerX, m_bounds.right, m_bounds.top, centerY, m_bounds.maxIt, m_generation + 1));
+    m_children.emplace_back(new Tile(m_bounds.left, centerX, centerY, m_bounds.bottom, m_bounds.maxIt, m_generation + 1));
+    m_children.emplace_back(new Tile(centerX, m_bounds.right, centerY, m_bounds.bottom, m_bounds.maxIt, m_generation + 1));
 
-    return newTiles;
+    m_state = State::SPLIT;
+
+    return m_children;
 }
 
-bool Tile::isSplit() const
+bool Tile::childrenAreRendered() const
 {
-    return m_split;
+    if (m_state != State::SPLIT)
+        return false;
+
+    for (auto tile : m_children) {
+        if (tile->getState() < State::ACTIVE) return false;
+    }
+    
+    return true;
 }
 
 GLuint Tile::getTexture() const
 {
+    assert(m_state >= State::INIT && m_state <= State::SPLIT);
+
     return m_texture;
 }
 
@@ -69,6 +136,8 @@ int Tile::getTextureSize() const
 
 void Tile::getVertexData(GLfloat * buffer) const
 {
+    assert(m_state >= State::INIT && m_state <= State::SPLIT);
+
     // Bottom left
     buffer[0] = (float)m_bounds.left;
     buffer[1] = (float)m_bounds.bottom;
@@ -99,6 +168,8 @@ void Tile::getVertexData(GLfloat * buffer) const
 
 void Tile::getUvData(GLfloat * buffer) const
 {
+    assert(m_state >= State::INIT && m_state <= State::SPLIT);
+
     static const GLfloat g_uv_buffer_data[] = {
 
         // Top left
@@ -119,28 +190,26 @@ void Tile::getUvData(GLfloat * buffer) const
     memcpy(buffer, g_uv_buffer_data, sizeof(GLfloat) * 12);
 }
 
-GLuint Tile::createTexture()
+void Tile::createTexture(float * buffer)
 {
-    GLuint texture;
-    glGenTextures(1, &texture);
+    assert(m_state == State::INIT /*|| m_state == State::UNLOADED*/);
+    assert(m_texture == NULL);
+
+    glGenTextures(1, &m_texture);
 
     // Fill the texture with 0
 
-    glBindTexture(GL_TEXTURE_2D, texture);
-
-    auto buffer = new float[TEXTURE_SIZE * TEXTURE_SIZE];
-    // IEEE says the pattern for 0.0f is all zeros
-    memset(buffer, 0, TEXTURE_SIZE * TEXTURE_SIZE * sizeof(float));
+    glBindTexture(GL_TEXTURE_2D, m_texture);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, TEXTURE_SIZE, TEXTURE_SIZE, 0, GL_RED, GL_FLOAT, buffer);
-    delete[] buffer;
 
     // Not sure about this stuff
     // ... nice trilinear filtering ...
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);  // This can't be GL_NEAREST_MIPMAP_*, but what about GL_LINEAR?
+    // This can't be GL_NEAREST_MIPMAP_*, but what about GL_LINEAR?
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     // ... which requires mipmaps. Generate them automatically.
     //glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -150,8 +219,6 @@ GLuint Tile::createTexture()
 
     // Not sure what this would do here, but it's in the example
     glFinish();
-
-    return texture;
 }
 
 bool inside(const Tile::Bounds & tile, const Tile::Bounds & view)

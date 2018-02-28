@@ -122,8 +122,10 @@ OpenClRenderer::OpenClRenderer()
     }
 }
 
-void OpenClRenderer::render(const Tile & tile)
+void OpenClRenderer::render(Tile * tile)
 {
+    tile->createTexture();
+
     cl_int result;
 
     // Create the kernel
@@ -133,7 +135,7 @@ void OpenClRenderer::render(const Tile & tile)
     cl::Buffer boundsBuffer(m_context,
         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
         sizeof(Tile::Bounds),
-        (void*)(&(tile.getBounds())),
+        (void*)(&(tile->getBounds())),
         &result
     );
 
@@ -143,7 +145,7 @@ void OpenClRenderer::render(const Tile & tile)
         CL_MEM_WRITE_ONLY,
         GL_TEXTURE_2D,
         0,
-        tile.getTexture(),
+        tile->getTexture(),
         &result
     );
     myassert(result);
@@ -160,14 +162,38 @@ void OpenClRenderer::render(const Tile & tile)
 
     result = m_queue.enqueueNDRangeKernel(mandelbrotKernel,
         cl::NullRange,                              // offset
-        cl::NDRange(tile.getTextureSize(), tile.getTextureSize())     // global
+        cl::NDRange(tile->getTextureSize(), tile->getTextureSize())     // global
     );  // local left up to the driver
     myassert(result);
 
-    result = m_queue.enqueueReleaseGLObjects(&textureVector);
+    cl::Event completionEvent;
+    result = m_queue.enqueueReleaseGLObjects(&textureVector, nullptr, &completionEvent);
     myassert(result);
+
+    tile->setRendering();
+    m_pendingRenders.emplace_back(tile, completionEvent);
 
     result = m_queue.flush();
     myassert(result);
 
+}
+
+void OpenClRenderer::checkPendingRenders()
+{
+    for (auto it = std::begin(m_pendingRenders); it != std::end(m_pendingRenders); /*Nothing*/) {
+        Tile* tile = it->first;
+        cl::Event event = it->second;
+
+        cl_int result;
+        auto status = event.getInfo<CL_EVENT_COMMAND_EXECUTION_STATUS>(&result);
+        myassert(result);
+
+        if (status == CL_COMPLETE) {
+            tile->setRendered();
+            it = m_pendingRenders.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 }

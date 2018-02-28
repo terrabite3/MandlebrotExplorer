@@ -6,7 +6,7 @@ TileSplitter::TileSplitter(const Camera& camera, Tile::Bounds initialTile) :
     m_camera(camera)
 {
     m_tiles.emplace_back(new Tile(initialTile));
-    m_renderer.render(*m_tiles[0]);
+    m_renderer.render(m_tiles[0]);
 }
 
 std::vector<Tile*> TileSplitter::getTiles() const
@@ -16,8 +16,7 @@ std::vector<Tile*> TileSplitter::getTiles() const
 
 void TileSplitter::splitAsNeeded()
 {
-    // Remove any tiles with all children done rendering
-    // TODO
+    m_renderer.checkPendingRenders();
 
     const auto viewBounds = m_camera.getBounds();
 
@@ -25,6 +24,8 @@ void TileSplitter::splitAsNeeded()
     std::vector<Tile*> newTiles;
 
     for (auto tile : m_tiles) {
+        if (tile->getState() != Tile::State::ACTIVE)
+            continue;
 
         const auto tileBounds = tile->getBounds();
 
@@ -34,7 +35,7 @@ void TileSplitter::splitAsNeeded()
             m_camera.getWidthPx() / tile->getTextureSize();
 
 
-        if (!tile->isSplit() && tileInside && pixelSize > 0.5) {
+        if (tileInside && pixelSize > 0.5) {
             std::cout << "Splitting\n";
 
             auto splitTiles = tile->split();
@@ -44,12 +45,12 @@ void TileSplitter::splitAsNeeded()
         }
     }
 
-    //for (auto it = m_tiles.begin(); it < m_tiles.end; ++it) {
+    // Remove any tiles with all children done rendering
     for (auto it = std::begin(m_tiles); it != std::end(m_tiles); /*Nothing*/)
     {
         auto tile = *it;
 
-        if (tile->isSplit()) {
+        if (tile->childrenAreRendered()) {
             it = m_tiles.erase(it);
             delete tile;
         }
@@ -59,7 +60,7 @@ void TileSplitter::splitAsNeeded()
     }
 
     for (auto newTile : newTiles) {
-        m_renderer.render(*newTile);
+        m_renderer.render(newTile);
         m_tiles.emplace_back(newTile);
     }
 }
